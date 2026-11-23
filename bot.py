@@ -159,8 +159,8 @@ def run_bot():
     # drop_pending_updates=True сбрасывает накопившиеся сообщения и убивает старые сессии
     bot.delete_webhook(drop_pending_updates=True) 
     print("Бот запущен и готов к работе!")
-    # skip_pending=True помогает избежать конфликта, если старый процесс еще умирает
-    bot.infinity_polling(skip_pending=True)
+    # Добавляем запрос на получение обновлений с параметром skip_pending
+    bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=20)
 
 # 5. Точка входа
 if __name__ == "__main__":
