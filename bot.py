@@ -87,7 +87,7 @@ def callback_handler(call):
         user_states[chat_id]['char'] = data.split("_")[1]
         bot.edit_message_text("Шаг 7. Выберите киностудию:", chat_id, message_id, reply_markup=keyboards.get_studio_keyboard())
 
-    # 8. СТУДИЯ (сразу переходим к рейтингу)
+    # 8. СТУДИЯ
     elif data.startswith("studio_"):
         user_states[chat_id]['studio'] = data.split("_")[1]
         bot.edit_message_text("Шаг 8. Выберите минимальный рейтинг:", chat_id, message_id, reply_markup=keyboards.get_rating_keyboard())

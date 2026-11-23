@@ -24,7 +24,7 @@ def get_recommendations(state):
         "api_key": config.TMDB_API_KEY,
         "language": "ru-RU",
         "sort_by": "popularity.desc",
-        "page": 1
+        "page": page
     }
 
     # 1. ФОРМАТ
