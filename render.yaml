@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: movie-mood-bot
+    runtime: python
+    plan: free
+    buildCommand: pip install uv && uv sync --locked
+    startCommand: uv run bot.py
