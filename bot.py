@@ -4,149 +4,123 @@ import config
 import keyboards
 import tmdb_api
 
-# Инициализация бота
 bot = telebot.TeleBot(config.BOT_TOKEN)
-
-# Словарь для хранения состояний пользователей (в оперативной памяти)
-# В реальном проекте используют базу данных (например, Redis или SQLite)
 user_states = {}
 
-# --- ОБРАБОТЧИК КОМАНДЫ /start ---
 @bot.message_handler(commands=['start'])
 def start_message(message):
     chat_id = message.chat.id
-    # Сбрасываем состояние при старте
     user_states[chat_id] = {}
-    
     bot.send_message(
         chat_id,
         f"Привет, {message.from_user.first_name}! 👋\n"
-        "Я бот-кинокритик. Помогу подобрать фильм под твое настроение.",
+        "Я продвинутый бот-кинокритик. Задам несколько вопросов, чтобы подобрать идеальный фильм.",
         reply_markup=keyboards.get_main_menu()
     )
 
-# --- ОБРАБОТЧИК INLINE-КНОПОК ---
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     chat_id = call.message.chat.id
     message_id = call.message.message_id
     data = call.data
 
-    # Обязательно отвечаем на колбэк, чтобы убрать "часики" с кнопки
     bot.answer_callback_query(call.id)
+    state = user_states.get(chat_id, {})
 
-    # 1. Запуск подбора
+    # 1. ЗАПУСК
     if data == "start_recommend":
-        user_states[chat_id] = {'step': 'year'}
-        bot.edit_message_text(
-            "Шаг 1 из 5. Выберите год выпуска:",
-            chat_id, message_id, reply_markup=keyboards.get_year_keyboard()
-        )
+        user_states[chat_id] = {}
+        bot.edit_message_text("Шаг 1. Что будем смотреть?", chat_id, message_id, reply_markup=keyboards.get_format_keyboard())
 
-    # 2. Выбор года
-    elif data.startswith("year_"):
-        year_val = data.split("_")[1]
-        user_states[chat_id]['year'] = year_val
-        user_states[chat_id]['step'] = 'genre'
-        
-        bot.edit_message_text(
-            "Шаг 2 из 5. Выберите жанр:",
-            chat_id, message_id, reply_markup=keyboards.get_genre_keyboard()
-        )
+    # 2. ФОРМАТ
+    elif data.startswith("format_"):
+        user_states[chat_id]['format'] = data.split("_")[1]
+        bot.edit_message_text("Шаг 2. Какое у Вас настроение?:", chat_id, message_id, reply_markup=keyboards.get_mood_keyboard())
 
-    # 3. Выбор жанра
-    elif data.startswith("genre_"):
-        genre_id = data.split("_")[1]
-        user_states[chat_id]['genre'] = genre_id
-        user_states[chat_id]['step'] = 'mood'
-        
-        bot.edit_message_text(
-            "Шаг 3 из 5. Какое у вас настроение?",
-            chat_id, message_id, reply_markup=keyboards.get_mood_keyboard()
-        )
-
-    # 4. Выбор настроения
+    # 3. НАСТРОЕНИЕ
     elif data.startswith("mood_"):
-        mood_val = data.split("_")[1]
-        user_states[chat_id]['mood'] = mood_val
-        user_states[chat_id]['step'] = 'actor'
-        
-        bot.edit_message_text(
-            "Шаг 4 из 5. Введите имя актера (или нажмите кнопку «Пропустить»):",
-            chat_id, message_id, reply_markup=keyboards.get_skip_actor_keyboard()
-        )
+        user_states[chat_id]['mood'] = data.split("_")[1]
+        bot.edit_message_text("Шаг 3. Выберите десятилетие:", chat_id, message_id, reply_markup=keyboards.get_year_keyboard())
 
-    # Обработка кнопки "Пропустить актера"
-    elif data == "skip_actor":
-        user_states[chat_id]['actor'] = None
-        user_states[chat_id]['step'] = 'country'
-        
-        bot.edit_message_text(
-            "Шаг 5 из 5. Выберите страну производства:",
-            chat_id, message_id, reply_markup=keyboards.get_country_keyboard()
-        )
+    # 4. ГОД
+    elif data.startswith("year_"):
+        user_states[chat_id]['year'] = data.split("_")[1]
+        bot.edit_message_text("Шаг 4. Страна производства:", chat_id, message_id, reply_markup=keyboards.get_country_keyboard())
 
-    # 5. Выбор страны и ФИНАЛ (отправка запроса к TMDB)
+    # 5. СТРАНА
     elif data.startswith("country_"):
-        country_code = data.split("_")[1]
-        user_states[chat_id]['country'] = country_code
+        user_states[chat_id]['country'] = data.split("_")[1]
+        bot.edit_message_text("Шаг 5. Основа сюжета или персонажи:", chat_id, message_id, reply_markup=keyboards.get_theme_keyboard())
+
+    # 6. ТЕМА (Персонажи / Источник)
+    elif data.startswith("theme_"):
+        user_states[chat_id]['theme'] = data.split("_")[1]
+        bot.edit_message_text("Шаг 6. Выберите киностудию:", chat_id, message_id, reply_markup=keyboards.get_studio_keyboard())
+
+    # 7. СТУДИЯ
+    elif data.startswith("studio_"):
+        user_states[chat_id]['studio'] = data.split("_")[1]
+        user_states[chat_id]['step'] = 'person'
+        bot.edit_message_text("Шаг 7. Введите имя актера или режиссера (например, Леонардо ДиКаприо), либо нажмите Пропустить:", chat_id, message_id, reply_markup=keyboards.get_skip_person_keyboard())
+
+    # ОБРАБОТКА КНОПКИ ПРОПУСТИТЬ АКТЕРА
+    elif data == "person_skip":
+        user_states[chat_id]['person'] = None
+        bot.edit_message_text("Шаг 8. Дополнительные фильтры:", chat_id, message_id, reply_markup=keyboards.get_extra_keyboard())
+
+    # 8. ДОПОЛНИТЕЛЬНО (Рейтинг / Длительность)
+    elif data.startswith("extra_"):
+        user_states[chat_id]['extra'] = data.split("_")[1]
+        bot.edit_message_text("🔎 Ищу подходящие варианты, секунду...", chat_id, message_id)
         
-        # Меняем сообщение на "Загрузка..."
-        bot.edit_message_text("🔎 Ищу подходящие фильмы, секунду...", chat_id, message_id)
+        # ЗАПРОС К API
+        movies = tmdb_api.get_recommendations(user_states[chat_id])
         
-        # Достаем все данные пользователя
-        state = user_states[chat_id]
-        
-        # Делаем запрос к TMDB (функция из tmdb_api.py)
-        movies = tmdb_api.get_movies(
-            year=state.get('year'),
-            genre_id=state.get('genre'),
-            mood=state.get('mood'),
-            country=state.get('country'),
-            actor_name=state.get('actor')
-        )
-        
-        # Отправляем результаты
         if not movies:
-            bot.send_message(chat_id, "😔 Ничего не нашлось по вашим критериям. Попробуйте изменить параметры через /start")
+            bot.send_message(chat_id, "😔 Ничего не нашлось. Попробуйте убрать актера или изменить фильтры через /start")
         else:
-            bot.send_message(chat_id, f"🍿 Нашел {len(movies)} вариантов! Вот они:")
+            bot.send_message(chat_id, f"🍿 Нашел {len(movies)} вариантов:")
             for movie in movies:
-                # Формируем карточку фильма
+                title = movie.get('title') or movie.get('name', 'Без названия')
+                date = movie.get('release_date') or movie.get('first_air_date', '')
+                year = date[:4] if date else '----'
+                
+                # Получаем описание
+                overview = movie.get('overview', 'Описание отсутствует.')
+                
+                # Если описание длиннее 800 символов, аккуратно обрезаем его по последнему пробелу
+                if len(overview) > 800:
+                    overview = overview[:800].rsplit(' ', 1)[0] + "..."
+                
                 caption = (
-                    f"🎬 *{movie['title']}* ({movie.get('release_date', '')[:4]})\n"
+                    f"🎬 *{title}* ({year})\n"
                     f"⭐ Рейтинг: {movie.get('vote_average', 0):.1f}\n\n"
-                    f"{movie.get('overview', 'Описание отсутствует.')[:300]}..."
+                    f"{overview}"
                 )
                 
-                # Отправляем постер, если он есть
+                # Отправляем постер
                 if movie.get('poster_path'):
                     photo_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
                     bot.send_photo(chat_id, photo_url, caption=caption, parse_mode='Markdown')
                 else:
                     bot.send_message(chat_id, caption, parse_mode='Markdown')
         
-        # Очищаем состояние после выдачи
         user_states[chat_id] = {}
         bot.send_message(chat_id, "Чтобы начать заново, нажмите /start")
 
-# --- ОБРАБОТЧИК ТЕКСТА (Ввод актера) ---
-@bot.message_handler(func=lambda message: user_states.get(message.chat.id, {}).get('step') == 'actor')
-def handle_actor_input(message):
+# ВВОД АКТЕРА / РЕЖИССЕРА
+@bot.message_handler(func=lambda message: user_states.get(message.chat.id, {}).get('step') == 'person')
+def handle_person_input(message):
     chat_id = message.chat.id
-    actor_name = message.text
-    
-    # Сохраняем имя актера
-    user_states[chat_id]['actor'] = actor_name
-    user_states[chat_id]['step'] = 'country'
+    user_states[chat_id]['person'] = message.text
+    user_states[chat_id]['step'] = None
     
     bot.send_message(
         chat_id,
-        f"Принято! Ищу фильмы с {actor_name}.\nШаг 5 из 5. Выберите страну производства:",
-        reply_markup=keyboards.get_country_keyboard()
+        f"Принято! Ищу с участием/режиссурой: {message.text}.\nШаг 8. Дополнительные фильтры:",
+        reply_markup=keyboards.get_extra_keyboard()
     )
 
-# Запуск бота
 if __name__ == "__main__":
     print("Бот запущен и готов к работе!")
     bot.infinity_polling()
