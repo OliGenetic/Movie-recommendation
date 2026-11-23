@@ -115,4 +115,8 @@ def get_runtime_keyboard():
         types.InlineKeyboardButton("Долгий (>150м)", callback_data="runtime_long"),
         types.InlineKeyboardButton("Без разницы", callback_data="runtime_any")
     )
+
+def get_more_results_keyboard():
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🔄 Показать ещё", callback_data="more_results"))
     return markup

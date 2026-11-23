@@ -103,7 +103,10 @@ def get_recommendations(state):
     response = requests.get(url, params=params)
     
     if response.status_code == 200:
-        return response.json().get("results", [])[:5]
+        data = response.json()
+        results = data.get("results", [])[:5] # Берем 5 фильмов с текущей страницы
+        total_pages = data.get("total_pages", 1)
+        return results, total_pages
     else:
         print(f"Ошибка API: {response.status_code} - {response.text}")
-        return []
+        return [], 0
