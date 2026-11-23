@@ -155,10 +155,12 @@ def callback_handler(call):
 
 # 4. Запуск бота в отдельном потоке
 def run_bot():
-    print("Удаляю возможный вебхук...")
-    bot.remove_webhook()  # Важно: убирает конфликты, если вебхук где-то остался
+    print("Удаляю возможный вебхук и старые обновления...")
+    # drop_pending_updates=True сбрасывает накопившиеся сообщения и убивает старые сессии
+    bot.delete_webhook(drop_pending_updates=True) 
     print("Бот запущен и готов к работе!")
-    bot.infinity_polling()
+    # skip_pending=True помогает избежать конфликта, если старый процесс еще умирает
+    bot.infinity_polling(skip_pending=True)
 
 # 5. Точка входа
 if __name__ == "__main__":
