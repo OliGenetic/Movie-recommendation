@@ -1,8 +1,23 @@
+import os
+import threading
+from fastapi import FastAPI
+import uvicorn
 import telebot
 import config
 import keyboards
 import tmdb_api
 
+# 1. Лёгкий эндпоинт для Render
+app = FastAPI()
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+# 2. Порт. Дефолт для Render Web Service — 10000
+port = int(os.environ.get("PORT", 10000))
+
+# 3. Бот
 bot = telebot.TeleBot(config.BOT_TOKEN)
 user_states = {}
 
