@@ -1,13 +1,16 @@
 from telebot import types
 
-def get_random_keyboard():
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🎲 Рекомендация рандомного фильма", callback_data="random_movie"))
-    return markup
-
 def get_main_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("🎬 Подобрать фильм", callback_data="start_recommend"))
+    markup.add(
+        types.InlineKeyboardButton("🎬 Подобрать фильм", callback_data="start_recommend"),
+        types.InlineKeyboardButton("🎲 Случайный фильм", callback_data="random_movie")
+    )
+    return markup
+
+def get_random_keyboard():
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🎲 Ещё случайный фильм", callback_data="random_movie"))
     return markup
 
 def get_format_keyboard():
@@ -81,7 +84,7 @@ def get_plot_keyboard():
 def get_character_keyboard():
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton("👨‍👩‍👧‍👧 Про людей", callback_data="char_people"), # НОВОЕ
+        types.InlineKeyboardButton("👨‍👩‍👧‍👧 Про людей", callback_data="char_people"),
         types.InlineKeyboardButton("🤖 Про роботов", callback_data="char_robots"),
         types.InlineKeyboardButton("🦊 Про животных", callback_data="char_animals"),
         types.InlineKeyboardButton("👽 Про инопланетян", callback_data="char_aliens"),
@@ -95,7 +98,7 @@ def get_rating_keyboard():
     markup.add(
         types.InlineKeyboardButton("Рейтинг 8+", callback_data="rating_8"),
         types.InlineKeyboardButton("Рейтинг 7+", callback_data="rating_7"),
-        types.InlineKeyboardButton("Рейтинг 6+", callback_data="rating_6"), # НОВОЕ
+        types.InlineKeyboardButton("Рейтинг 6+", callback_data="rating_6"),
         types.InlineKeyboardButton("🎲 Любой фильм", callback_data="rating_any")
     )
     return markup
@@ -116,6 +119,9 @@ def get_more_results_keyboard():
     return markup
 
 def get_restart_keyboard():
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🔄 Повторить поиск", callback_data="start_recommend"))
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("🔄 Повторить поиск", callback_data="start_recommend"),
+        types.InlineKeyboardButton("🎲 Случайный фильм", callback_data="random_movie")
+    )
     return markup

@@ -1,5 +1,6 @@
 import requests
 import config
+import random
 
 BASE_URL = "https://api.themoviedb.org/3"
 
@@ -72,11 +73,9 @@ def get_recommendations(state, page=1):
     # 5. ОСНОВА СЮЖЕТА
     keywords = []
     if state.get('plot') in KEYWORDS: keywords.append(KEYWORDS[state.get('plot')])
-    
+
     # 6. ПЕРСОНАЖИ
-    char = state.get('char')
-    if char in KEYWORDS: 
-        keywords.append(KEYWORDS[char])
+    if state.get('char') in KEYWORDS: keywords.append(KEYWORDS[state.get('char')])
     if keywords:
         params["with_keywords"] = ",".join(keywords)
 
@@ -112,3 +111,22 @@ def get_recommendations(state, page=1):
     else:
         print(f"Ошибка API: {response.status_code} - {response.text}")
         return [], 0
+
+# Случайный известный фильм
+def get_random_movie():
+    random_page = random.randint(1, 10) 
+    url = f"{BASE_URL}/discover/movie"
+    params = {
+        "api_key": config.TMDB_API_KEY,
+        "language": "ru-RU",
+        "sort_by": "popularity.desc",
+        "vote_average.gte": 6.5,
+        "vote_count.gte": 100,
+        "page": random_page
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        results = response.json().get("results", [])
+        if results:
+            return random.choice(results)
+    return None
