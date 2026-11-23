@@ -40,13 +40,13 @@ def get_recommendations(state, page=1):
     # 2. НАСТРОЕНИЕ
     mood = state.get('mood')
     mood_genres = []
-    if mood == "relax": mood_genres = ["35", "10751"]
-    elif mood == "thrill": mood_genres = ["28", "53", "27"]
-    elif mood == "think": mood_genres = ["878", "9648", "18"]
-    elif mood == "cry": mood_genres = ["18", "10749"]
-    elif mood == "dream": mood_genres = ["14", "12"]
-    elif mood == "laugh": mood_genres = ["35"]
-    elif mood == "romance": mood_genres = ["10749"]
+    if mood == "relax": mood_genres = ["10751", "35", "10402", "10770"] # Family (10751), Comedy (35), Music (10402), TV Movie (10770)
+    elif mood == "thrill": mood_genres = ["28", "53", "27"] # Action (28), Thriller (53), Horror (27)
+    elif mood == "think": mood_genres = ["878", "9648", "80", "90"] # Mystery (878), Science Fiction (9648), Crime (80), Documentary (90)
+    elif mood == "cry": mood_genres = ["18", "10752"] # Drama (18), War (10752)
+    elif mood == "dream": mood_genres = ["14", "12"] # Fantasy (14), Adventure (12)
+    elif mood == "laugh": mood_genres = ["35"] # Comedy (35)
+    elif mood == "romance": mood_genres = ["10749"] # Romance (10749)
     
     if mood_genres:
         if "with_genres" in params: params["with_genres"] += "," + ",".join(mood_genres)
@@ -69,28 +69,30 @@ def get_recommendations(state, page=1):
     if country != "any":
         params["with_origin_country"] = country
 
-    # 5 и 6. ОСНОВА СЮЖЕТА И ПЕРСОНАЖИ
+    # 5. ОСНОВА СЮЖЕТА
     keywords = []
     if state.get('plot') in KEYWORDS: keywords.append(KEYWORDS[state.get('plot')])
-    if state.get('char') in KEYWORDS: keywords.append(KEYWORDS[state.get('char')])
+    
+    # 6. ПЕРСОНАЖИ
+    char = state.get('char')
+    if char in KEYWORDS: 
+        keywords.append(KEYWORDS[char])
     if keywords:
         params["with_keywords"] = ",".join(keywords)
 
-    # 7. СТУДИЯ
-    studio = state.get('studio')
-    if studio != "any":
-        params["with_companies"] = studio
-
-    # 8. РЕЙТИНГ
+    # 7. РЕЙТИНГ
     rating = state.get('rating')
-    if rating == "7":
+    if rating == "6":
+        params["vote_average.gte"] = 6.0
+        params["vote_count.gte"] = 20
+    elif rating == "7":
         params["vote_average.gte"] = 7.0
         params["vote_count.gte"] = 50
     elif rating == "8":
         params["vote_average.gte"] = 8.0
         params["vote_count.gte"] = 100
 
-    # 9. ДЛИТЕЛЬНОСТЬ (работает только для фильмов)
+    # 8. ДЛИТЕЛЬНОСТЬ (работает только для фильмов)
     runtime = state.get('runtime')
     if media_type == "movie":
         if runtime == "short": params["with_runtime.lte"] = 90

@@ -1,3 +1,4 @@
+import random 
 import os
 import threading
 from fastapi import FastAPI
@@ -66,7 +67,35 @@ def callback_handler(call):
     bot.answer_callback_query(call.id)
     state = user_states.get(chat_id, {})
 
-    # 1. ЗАПУСК
+    # 1. РАНДОМНЫЙ ПОИСК
+    if data == "random_movie":
+    bot.edit_message_text("🎲 Ищу случайный фильм, секунду...", chat_id, message_id)
+    
+    # Запрашиваем у TMDB популярные фильмы
+    random_page = random.randint(1, 5) 
+    params = {
+        "api_key": config.TMDB_API_KEY,
+        "language": "ru-RU",
+        "sort_by": "popularity.desc",
+        "vote_average.gte": 6.5,
+        "vote_count.gte": 100,
+        "page": random_page
+    }
+    url = "https://api.themoviedb.org/3/discover/movie"
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        results = response.json().get("results", [])
+        if results:
+            random_movie = random.choice(results)
+            send_movies(chat_id, [random_movie]) # Отправляем один фильм
+            bot.send_message(chat_id, "Хочешь ещё один случайный фильм?", reply_markup=keyboards.get_random_keyboard())
+        else:
+            bot.send_message(chat_id, "Не удалось найти случайный фильм. Попробуйте позже.")
+    else:
+        bot.send_message(chat_id, "Ошибка при поиске. Попробуйте позже.")
+    
+    # 1. ЗАПУСК     
     if data == "start_recommend":
         user_states[chat_id] = {'page': 1} # Сбрасываем и задаем 1 страницу
         bot.edit_message_text("Шаг 1. Что будем смотреть?", chat_id, message_id, reply_markup=keyboards.get_format_keyboard())
@@ -99,17 +128,12 @@ def callback_handler(call):
     # 7. ПЕРСОНАЖИ
     elif data.startswith("char_"):
         user_states[chat_id]['char'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 7. Выберите киностудию:", chat_id, message_id, reply_markup=keyboards.get_studio_keyboard())
+        bot.edit_message_text("Шаг 7. Выберите минимальный рейтинг TMDB (1–10):", chat_id, message_id, reply_markup=keyboards.get_rating_keyboard())
 
-    # 8. СТУДИЯ
-    elif data.startswith("studio_"):
-        user_states[chat_id]['studio'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 8. Выберите минимальный рейтинг:", chat_id, message_id, reply_markup=keyboards.get_rating_keyboard())
-
-    # 9. РЕЙТИНГ (переходим к длительности)
+    # 9. РЕЙТИНГ
     elif data.startswith("rating_"):
         user_states[chat_id]['rating'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 9. Длительность фильма:", chat_id, message_id, reply_markup=keyboards.get_runtime_keyboard())
+        bot.edit_message_text("Шаг 8. Длительность только для фильма:", chat_id, message_id, reply_markup=keyboards.get_runtime_keyboard())
 
    # 10. ДЛИТЕЛЬНОСТЬ (ПЕРВЫЙ ЗАПРОС)
     elif data.startswith("runtime_"):
@@ -141,7 +165,10 @@ def callback_handler(call):
         movies, total_pages = tmdb_api.get_recommendations(state, page=current_page)
         
         if not movies:
-            bot.edit_message_text("😔 Больше ничего не нашли по вашему запросу.", chat_id, message_id)
+            bot.send_message(chat_id, 
+                             "😔 Ничего не нашлось. Попробуйте изменить фильтры или посмотрите случайный фильм.", 
+        reply_markup=keyboards.get_random_keyboard() 
+        )
         else:
             user_states[chat_id]['page'] = current_page
             bot.send_message(chat_id, f"🍿 Страница {current_page} из {total_pages}:")
