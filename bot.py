@@ -1,5 +1,4 @@
 import telebot
-from telebot import types
 import config
 import keyboards
 import tmdb_api
@@ -35,49 +34,53 @@ def callback_handler(call):
     # 2. ФОРМАТ
     elif data.startswith("format_"):
         user_states[chat_id]['format'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 2. Какое у Вас настроение?:", chat_id, message_id, reply_markup=keyboards.get_mood_keyboard())
+        bot.edit_message_text("Шаг 2. Под какое настроение?", chat_id, message_id, reply_markup=keyboards.get_mood_keyboard())
 
     # 3. НАСТРОЕНИЕ
     elif data.startswith("mood_"):
         user_states[chat_id]['mood'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 3. Выберите десятилетие:", chat_id, message_id, reply_markup=keyboards.get_year_keyboard())
+        bot.edit_message_text("Шаг 3. Выберите период выхода:", chat_id, message_id, reply_markup=keyboards.get_year_keyboard())
 
     # 4. ГОД
     elif data.startswith("year_"):
-        user_states[chat_id]['year'] = data.split("_")[1]
+        user_states[chat_id]['year'] = data.split("_", 1)[1]
         bot.edit_message_text("Шаг 4. Страна производства:", chat_id, message_id, reply_markup=keyboards.get_country_keyboard())
 
     # 5. СТРАНА
     elif data.startswith("country_"):
         user_states[chat_id]['country'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 5. Основа сюжета или персонажи:", chat_id, message_id, reply_markup=keyboards.get_theme_keyboard())
+        bot.edit_message_text("Шаг 5. Основа сюжета:", chat_id, message_id, reply_markup=keyboards.get_plot_keyboard())
 
-    # 6. ТЕМА (Персонажи / Источник)
-    elif data.startswith("theme_"):
-        user_states[chat_id]['theme'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 6. Выберите киностудию:", chat_id, message_id, reply_markup=keyboards.get_studio_keyboard())
+    # 6. ОСНОВА СЮЖЕТА
+    elif data.startswith("plot_"):
+        user_states[chat_id]['plot'] = data.split("_")[1]
+        bot.edit_message_text("Шаг 6. Главные герои (персонажи):", chat_id, message_id, reply_markup=keyboards.get_character_keyboard())
 
-    # 7. СТУДИЯ
+    # 7. ПЕРСОНАЖИ
+    elif data.startswith("char_"):
+        user_states[chat_id]['char'] = data.split("_")[1]
+        bot.edit_message_text("Шаг 7. Выберите киностудию:", chat_id, message_id, reply_markup=keyboards.get_studio_keyboard())
+
+    # 8. СТУДИЯ (сразу переходим к рейтингу)
     elif data.startswith("studio_"):
         user_states[chat_id]['studio'] = data.split("_")[1]
-        user_states[chat_id]['step'] = 'person'
-        bot.edit_message_text("Шаг 7. Введите имя актера или режиссера (например, Леонардо ДиКаприо), либо нажмите Пропустить:", chat_id, message_id, reply_markup=keyboards.get_skip_person_keyboard())
+        bot.edit_message_text("Шаг 8. Выберите минимальный рейтинг:", chat_id, message_id, reply_markup=keyboards.get_rating_keyboard())
 
-    # ОБРАБОТКА КНОПКИ ПРОПУСТИТЬ АКТЕРА
-    elif data == "person_skip":
-        user_states[chat_id]['person'] = None
-        bot.edit_message_text("Шаг 8. Дополнительные фильтры:", chat_id, message_id, reply_markup=keyboards.get_extra_keyboard())
+    # 9. РЕЙТИНГ (переходим к длительности)
+    elif data.startswith("rating_"):
+        user_states[chat_id]['rating'] = data.split("_")[1]
+        bot.edit_message_text("Шаг 9. Длительность фильма:", chat_id, message_id, reply_markup=keyboards.get_runtime_keyboard())
 
-    # 8. ДОПОЛНИТЕЛЬНО (Рейтинг / Длительность)
-    elif data.startswith("extra_"):
-        user_states[chat_id]['extra'] = data.split("_")[1]
+    # 10. ДЛИТЕЛЬНОСТЬ (ФИНАЛ)
+    elif data.startswith("runtime_"):
+        user_states[chat_id]['runtime'] = data.split("_")[1]
         bot.edit_message_text("🔎 Ищу подходящие варианты, секунду...", chat_id, message_id)
         
         # ЗАПРОС К API
         movies = tmdb_api.get_recommendations(user_states[chat_id])
         
         if not movies:
-            bot.send_message(chat_id, "😔 Ничего не нашлось. Попробуйте убрать актера или изменить фильтры через /start")
+            bot.send_message(chat_id, "😔 Ничего не нашлось. Попробуйте убрать строгие фильтры (например, студию) через /start")
         else:
             bot.send_message(chat_id, f"🍿 Нашел {len(movies)} вариантов:")
             for movie in movies:
@@ -85,10 +88,7 @@ def callback_handler(call):
                 date = movie.get('release_date') or movie.get('first_air_date', '')
                 year = date[:4] if date else '----'
                 
-                # Получаем описание
                 overview = movie.get('overview', 'Описание отсутствует.')
-                
-                # Если описание длиннее 800 символов, аккуратно обрезаем его по последнему пробелу
                 if len(overview) > 800:
                     overview = overview[:800].rsplit(' ', 1)[0] + "..."
                 
@@ -98,7 +98,6 @@ def callback_handler(call):
                     f"{overview}"
                 )
                 
-                # Отправляем постер
                 if movie.get('poster_path'):
                     photo_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
                     bot.send_photo(chat_id, photo_url, caption=caption, parse_mode='Markdown')
@@ -107,19 +106,6 @@ def callback_handler(call):
         
         user_states[chat_id] = {}
         bot.send_message(chat_id, "Чтобы начать заново, нажмите /start")
-
-# ВВОД АКТЕРА / РЕЖИССЕРА
-@bot.message_handler(func=lambda message: user_states.get(message.chat.id, {}).get('step') == 'person')
-def handle_person_input(message):
-    chat_id = message.chat.id
-    user_states[chat_id]['person'] = message.text
-    user_states[chat_id]['step'] = None
-    
-    bot.send_message(
-        chat_id,
-        f"Принято! Ищу с участием/режиссурой: {message.text}.\nШаг 8. Дополнительные фильтры:",
-        reply_markup=keyboards.get_extra_keyboard()
-    )
 
 if __name__ == "__main__":
     print("Бот запущен и готов к работе!")

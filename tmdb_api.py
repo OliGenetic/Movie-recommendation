@@ -3,16 +3,17 @@ import config
 
 BASE_URL = "https://api.themoviedb.org/3"
 
-# ID ключевых слов (Keywords) из TMDB
 KEYWORDS = {
-    "games": "152368",   # based on video game
-    "comics": "9715",    # based on comic book
-    "robots": "11035",   # robot
-    "animals": "14760"   # animal
+    "plot_games": "152368",   
+    "plot_comics": "9715",    
+    "plot_books": "818",      
+    "char_robots": "11035",   
+    "char_animals": "14760",  
+    "char_aliens": "14909",   
+    "char_vampires": "3133"   
 }
 
 def get_recommendations(state):
-    # Определяем тип контента (фильм или сериал)
     media_type = "movie"
     if state.get('format') in ['tv', 'dorama', 'anime']:
         media_type = "tv"
@@ -26,40 +27,36 @@ def get_recommendations(state):
         "page": 1
     }
 
-    # 1. ФОРМАТ (Спец. обработка)
+    # 1. ФОРМАТ
     fmt = state.get('format')
     if fmt == 'cartoon':
-        params["with_genres"] = "16" # Анимация
+        params["with_genres"] = "16"
     elif fmt == 'anime':
         params["with_genres"] = "16"
-        params["with_keywords"] = "210024" # Anime
+        params["with_keywords"] = "210024"
     elif fmt == 'dorama':
         params["with_origin_country"] = "KR"
 
-    # 2. НАСТРОЕНИЕ (Заменяет жанр)
+    # 2. НАСТРОЕНИЕ
     mood = state.get('mood')
     mood_genres = []
-    if mood == "relax":
-        mood_genres = ["35", "10751"]  # Комедия, Семейный
-    elif mood == "thrill":
-        mood_genres = ["28", "53", "27"] # Боевик, Триллер, Ужасы
-    elif mood == "think":
-        mood_genres = ["878", "9648"]  # Фантастика, Детектив
-    elif mood == "cry":
-        mood_genres = ["18", "10749"]  # Драма, Романтика
+    if mood == "relax": mood_genres = ["35", "10751"]
+    elif mood == "thrill": mood_genres = ["28", "53", "27"]
+    elif mood == "think": mood_genres = ["878", "9648", "18"]
+    elif mood == "cry": mood_genres = ["18", "10749"]
+    elif mood == "dream": mood_genres = ["14", "12"]
+    elif mood == "laugh": mood_genres = ["35"]
+    elif mood == "romance": mood_genres = ["10749"]
     
-    # Объединяем жанры формата и настроения
     if mood_genres:
-        if "with_genres" in params:
-            params["with_genres"] += "," + ",".join(mood_genres)
-        else:
-            params["with_genres"] = ",".join(mood_genres)
+        if "with_genres" in params: params["with_genres"] += "," + ",".join(mood_genres)
+        else: params["with_genres"] = ",".join(mood_genres)
 
     # 3. ГОД
     year = state.get('year')
     if year != "any":
-        start_year = int(year[:4])
-        end_year = start_year + 9
+        start_year = int(year.split("_")[0])
+        end_year = int(year.split("_")[1])
         if media_type == "movie":
             params["primary_release_date.gte"] = f"{start_year}-01-01"
             params["primary_release_date.lte"] = f"{end_year}-12-31"
@@ -72,42 +69,37 @@ def get_recommendations(state):
     if country != "any":
         params["with_origin_country"] = country
 
-    # 5. ТЕМА / ПЕРСОНАЖИ (Keywords)
-    theme = state.get('theme')
-    if theme in KEYWORDS:
-        if "with_keywords" in params:
-            params["with_keywords"] += "|" + KEYWORDS[theme] # Оператор | означает ИЛИ
-        else:
-            params["with_keywords"] = KEYWORDS[theme]
+    # 5 и 6. ОСНОВА СЮЖЕТА И ПЕРСОНАЖИ
+    keywords = []
+    if state.get('plot') in KEYWORDS: keywords.append(KEYWORDS[state.get('plot')])
+    if state.get('char') in KEYWORDS: keywords.append(KEYWORDS[state.get('char')])
+    if keywords:
+        params["with_keywords"] = ",".join(keywords)
 
-    # 6. СТУДИЯ (Companies)
+    # 7. СТУДИЯ
     studio = state.get('studio')
     if studio != "any":
         params["with_companies"] = studio
 
-    # 7. АКТЕР / РЕЖИССЕР
-    person = state.get('person')
-    if person and media_type == "movie": # Для сериалов TMDB не поддерживает поиск по актерам в discover
-        search_url = f"{BASE_URL}/search/person"
-        res = requests.get(search_url, params={"api_key": config.TMDB_API_KEY, "query": person}).json()
-        if res.get("results"):
-            person_id = res["results"][0]["id"]
-            # Ищем и как актера (with_cast), и как режиссера (with_crew)
-            params["with_cast"] = person_id
-    elif person and media_type == "tv":
-        print("Предупреждение: TMDB не поддерживает фильтр по актерам для сериалов в discover.")
-
-    # 8. ДОПОЛНИТЕЛЬНО (Рейтинг / Длительность)
-    extra = state.get('extra')
-    if extra == "rating":
+    # 8. РЕЙТИНГ
+    rating = state.get('rating')
+    if rating == "7":
         params["vote_average.gte"] = 7.0
-        params["vote_count.gte"] = 100 # Чтобы не попадались фильмы с 1 оценкой
-    elif extra == "short":
-        params["with_runtime.lte"] = 90
-    elif extra == "long":
-        params["with_runtime.gte"] = 150
+        params["vote_count.gte"] = 50
+    elif rating == "8":
+        params["vote_average.gte"] = 8.0
+        params["vote_count.gte"] = 100
 
-    # Делаем основной запрос
+    # 9. ДЛИТЕЛЬНОСТЬ (работает только для фильмов)
+    runtime = state.get('runtime')
+    if media_type == "movie":
+        if runtime == "short": params["with_runtime.lte"] = 90
+        elif runtime == "medium":
+            params["with_runtime.gte"] = 90
+            params["with_runtime.lte"] = 150
+        elif runtime == "long": params["with_runtime.gte"] = 150
+
+    # Запрос к API
     response = requests.get(url, params=params)
     
     if response.status_code == 200:
