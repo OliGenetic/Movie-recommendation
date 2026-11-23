@@ -7,14 +7,14 @@ import config
 import keyboards
 import tmdb_api
 
-# 1. Лёгкий эндпоинт для Render
+# 1. FastAPI приложение для health check
 app = FastAPI()
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# 2. Порт. Дефолт для Render Web Service — 10000
+# 2. Порт, который даёт Render (по умолчанию 10000)
 port = int(os.environ.get("PORT", 10000))
 
 # 3. Бот
@@ -153,6 +153,19 @@ def callback_handler(call):
             else:
                 bot.edit_message_text("Хотите посмотреть другие варианты?", chat_id, message_id, reply_markup=keyboards.get_more_results_keyboard())
 
-if __name__ == "__main__":
+# 4. Запуск бота в отдельном потоке
+def run_bot():
+    print("Удаляю возможный вебхук...")
+    bot.remove_webhook()  # Важно: убирает конфликты, если вебхук где-то остался
     print("Бот запущен и готов к работе!")
     bot.infinity_polling()
+
+# 5. Точка входа
+if __name__ == "__main__":
+    # Запускаем бота в фоновом потоке
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+
+    # Запускаем FastAPI в основном потоке (чтобы Render видел порт)
+    print(f"Запуск FastAPI на порту {port}...")
+    uvicorn.run(app, host="0.0.0.0", port=port)
