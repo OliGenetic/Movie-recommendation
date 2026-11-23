@@ -13,7 +13,6 @@ def send_movies(chat_id, movies):
         date = movie.get('release_date') or movie.get('first_air_date', '')
         year = date[:4] if date else '----'
         
-        # Решаем проблему пустого описания
         overview = movie.get('overview', '').strip()
         if not overview:
             overview = "😔 Описание отсутствует на русском языке."

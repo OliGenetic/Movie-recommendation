@@ -13,7 +13,7 @@ KEYWORDS = {
     "char_vampires": "3133"   
 }
 
-def get_recommendations(state):
+def get_recommendations(state, page=1):    
     media_type = "movie"
     if state.get('format') in ['tv', 'dorama', 'anime']:
         media_type = "tv"
