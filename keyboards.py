@@ -1,5 +1,6 @@
 from telebot import types
 
+# Inline-кнопки
 def get_main_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
@@ -124,4 +125,12 @@ def get_restart_keyboard():
         types.InlineKeyboardButton("🔄 Повторить поиск", callback_data="start_recommend"),
         types.InlineKeyboardButton("🎲 Случайный фильм", callback_data="random_movie")
     )
+    return markup
+
+# Reply-клавиатура
+def get_reply_main_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    btn_search = types.KeyboardButton("🎬 Подобрать фильм")
+    btn_random = types.KeyboardButton("🎲 Случайный фильм")
+    markup.add(btn_search, btn_random)
     return markup

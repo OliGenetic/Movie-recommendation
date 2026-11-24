@@ -29,8 +29,17 @@ def send_movies(chat_id, movies):
         year = date[:4] if date else '----'
         
         overview = movie.get('overview', '').strip()
+        
+        # Если русского описания нет — запрашиваем английское
         if not overview:
-            overview = "😔 Описание отсутствует на русском языке."
+            is_tv = 'name' in movie 
+            overview = tmdb_api.get_english_overview(movie.get('id'), is_tv=is_tv)
+        
+        # Если и на английском ничего нет, ставим заглушку
+        if not overview:
+            overview = "😔 Описание отсутствует на доступных языках."
+            
+        # Обрезаем текст, если он слишком длинный (лимит Telegram 1024 символа)
         elif len(overview) > 800:
             overview = overview[:800].rsplit(' ', 1)[0] + "..."
         
@@ -49,13 +58,47 @@ def send_movies(chat_id, movies):
 @bot.message_handler(commands=['start'])
 def start_message(message):
     chat_id = message.chat.id
-    user_states[chat_id] = {}
+    user_states[chat_id] = {} # хранение выбора пользователя
+
+    # Отправляем приветствие и постоянную клавиатуру
     bot.send_message(
         chat_id,
         f"Привет, {message.from_user.first_name}! 👋\n"
-        "Я продвинутый бот-кинокритик. Задам несколько вопросов, чтобы подобрать идеальный фильм.",
-        reply_markup=keyboards.get_main_menu()
+        "Я продвинутый бот-кинокритик 🎥 FilmStart 🎥 " \
+        "Задам несколько вопросов, чтобы подобрать идеальный фильм.",
+        reply_markup=keyboards.get_reply_main_menu()
     )
+
+# Обработчик для кнопки "Подобрать фильм"
+@bot.message_handler(func=lambda message: message.text == "🎬 Подобрать фильм")
+def handle_search_btn(message):
+    chat_id = message.chat.id
+    user_states[chat_id] = {'page': 1}
+    
+    # Отправляем первое сообщение опроса с Inline-кнопками
+    bot.send_message(
+        chat_id, 
+        "Шаг 1. Что будем смотреть?", 
+        reply_markup=keyboards.get_format_keyboard()
+    )
+
+# Обработчик для кнопки "Случайный фильм"
+@bot.message_handler(func=lambda message: message.text == "🎲 Случайный фильм")
+def handle_random_btn(message):
+    chat_id = message.chat.id
+    bot.send_message(chat_id, "🎲 Ищу случайный фильм, секунду...")
+    
+    random_movie = tmdb_api.get_random_movie()
+    
+    if random_movie:
+        send_movies(chat_id, [random_movie])
+        bot.send_message(
+            chat_id, 
+            "Хочешь ещё один случайный фильм?", 
+            reply_markup=keyboards.get_random_keyboard()
+        )
+    else:
+        bot.send_message(chat_id, "😔 Не удалось найти фильм. Попробуйте позже.")
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):

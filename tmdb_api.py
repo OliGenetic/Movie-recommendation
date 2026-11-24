@@ -130,3 +130,15 @@ def get_random_movie():
         if results:
             return random.choice(results)
     return None
+
+def get_english_overview(item_id, is_tv=False):
+    endpoint = "tv" if is_tv else "movie"
+    url = f"{BASE_URL}/{endpoint}/{item_id}"
+    params = {
+        "api_key": config.TMDB_API_KEY,
+        "language": "en-US"  # В случае отсутствия описания на русском, запрашиваем английский язык
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        return response.json().get('overview', '').strip()
+    return ""
