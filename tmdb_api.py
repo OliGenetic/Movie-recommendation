@@ -153,7 +153,8 @@ def get_new_year_movies():
         "api_key": config.TMDB_API_KEY,
         "language": "ru-RU",
         "sort_by": "popularity.desc",
-        "with_keywords": "207317|12392", # Christmas or New Year
+        # Ищем фильмы, связанные с Рождеством (207317) или кануном Нового года (613)
+        "with_keywords": "207317|613", 
         "vote_average.gte": 6.0,
         "vote_count.gte": 50,
         "page": random_page
