@@ -1,4 +1,5 @@
 import os
+import random
 import threading
 from fastapi import FastAPI
 import uvicorn
@@ -95,10 +96,9 @@ def handle_random_btn(message):
 def handle_new_year_btn(message):
     chat_id = message.chat.id
     bot.send_message(chat_id, "🎄 Ищу лучшие новогодние фильмы...")
-    
-    user_states[chat_id] = {'page': 1, 'search_type': 'new_year'}
-    
-    movies, total_pages = tmdb_api.get_new_year_movies(page=1)
+    start_page = random.randint(1, 5)
+    user_states[chat_id] = {'page': start_page, 'search_type': 'new_year'}
+    movies, total_pages = tmdb_api.get_new_year_movies(page=start_page)
     
     if movies:
         send_movies(chat_id, movies)
