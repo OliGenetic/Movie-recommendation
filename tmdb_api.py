@@ -41,7 +41,11 @@ def get_recommendations(state, page=1):
         params["with_genres"] = "16"
         params["with_keywords"] = "210024"
     elif fmt == 'dorama':
-        # Если страна не выбрана, ищем дорамы по всем азиатским странам
+        # Исключаем аниме из дорам
+        params["without_genres"] = "16" 
+        params["without_keywords"] = "210024"
+    
+        # Если страна не выбрана, ищем по всем азиатским странам
         if state.get('country') == "any":
             params["with_origin_country"] = "KR|JP|CN|TW"
 
