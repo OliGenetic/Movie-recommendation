@@ -146,17 +146,25 @@ def get_random_movie():
 # СЕЗОННЫЕ ФИЛЬМЫ
 # Новогодние фильмы
 def get_new_year_movies():
+    random_page = random.randint(1, 5)
+    
     url = f"{BASE_URL}/discover/movie"
     params = {
         "api_key": config.TMDB_API_KEY,
         "language": "ru-RU",
         "sort_by": "popularity.desc",
         "with_keywords": "207317|12392", # Christmas or New Year
-        "vote_average.gte": 6.0
+        "vote_average.gte": 6.0,
+        "vote_count.gte": 50,
+        "page": random_page
     }
     response = requests.get(url, params=params)
+    
     if response.status_code == 200:
-        return response.json().get("results", [])[:5]
+        results = response.json().get("results", [])
+        if results:
+            random.shuffle(results)
+            return results[:5]
     return []
 
 def get_english_overview(item_id, is_tv=False):
