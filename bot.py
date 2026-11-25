@@ -73,7 +73,7 @@ def start_message(message):
 @bot.message_handler(func=lambda message: message.text == "🎬 Подобрать фильм")
 def handle_search_btn(message):
     chat_id = message.chat.id
-    user_states[chat_id] = {'page': 1}
+    user_states[chat_id] = {'page': 1, 'search_type': 'custom'}
 
     # Отправляем первое сообщение опроса с Inline-кнопками
     bot.send_message(chat_id, "Что будем смотреть?", reply_markup=keyboards.get_format_keyboard())
@@ -91,17 +91,21 @@ def handle_random_btn(message):
     else:
         bot.send_message(chat_id, "😔 Не удалось найти фильм. Попробуйте позже.")
 
-# Поиск новогоднего фильма
 @bot.message_handler(func=lambda message: "Новогодние фильмы" in message.text)
 def handle_new_year_btn(message):
     chat_id = message.chat.id
     bot.send_message(chat_id, "🎄 Ищу лучшие новогодние фильмы...")
-    movies = tmdb_api.get_new_year_movies()
+    
+    user_states[chat_id] = {'page': 1, 'search_type': 'new_year'}
+    
+    movies, total_pages = tmdb_api.get_new_year_movies(page=1)
     
     if movies:
         send_movies(chat_id, movies)
-        # Отправляем кнопку, чтобы можно было продолжить
-        bot.send_message(chat_id, "Хотите посмотреть ещё?", reply_markup=keyboards.get_more_results_keyboard())
+        if total_pages > 1:
+            bot.send_message(chat_id, "Хотите посмотреть ещё?", reply_markup=keyboards.get_more_results_keyboard())
+        else:
+            bot.send_message(chat_id, "Больше ничего не нашли.", reply_markup=keyboards.get_restart_keyboard())
     else:
         bot.send_message(chat_id, "😔 Не удалось найти новогодние фильмы.")
 
@@ -213,19 +217,24 @@ def callback_handler(call):
     # Пагинация ("Показать ещё")
     elif data == "more_results":
         current_page = state.get('page', 1) + 1
+        search_type = state.get('search_type', 'custom')
         
         if current_page > 500:
             bot.edit_message_text("Достигнут лимит выдачи. Начните новый поиск.", chat_id, message_id, reply_markup=keyboards.get_restart_keyboard())
             return
 
-        # Удаляем старое сообщение с кнопкой
         try:
             bot.delete_message(chat_id, message_id)
         except:
             pass
         
         loading_msg = bot.send_message(chat_id, f"🔎 Ищу страницу {current_page}...")
-        movies, total_pages = tmdb_api.get_recommendations(state, page=current_page)
+        
+        # ВЕТВЛЕНИЕ ЛОГИКИ
+        if search_type == 'new_year':
+            movies, total_pages = tmdb_api.get_new_year_movies(page=current_page)
+        else:
+            movies, total_pages = tmdb_api.get_recommendations(state, page=current_page)
         
         if not movies:
             bot.edit_message_text("😔 Больше ничего не нашли.", chat_id, loading_msg.message_id, reply_markup=keyboards.get_restart_keyboard())
@@ -235,7 +244,6 @@ def callback_handler(call):
             bot.send_message(chat_id, f"🍿 Страница {current_page} из {total_pages}:")
             send_movies(chat_id, movies)
             
-            # Всегда отправляем новую кнопку внизу, пока не дошли до конца
             if current_page >= total_pages:
                 bot.send_message(chat_id, "Это все фильмы, которые удалось найти.", reply_markup=keyboards.get_restart_keyboard())
             else:

@@ -162,11 +162,11 @@ def get_new_year_movies():
     response = requests.get(url, params=params)
     
     if response.status_code == 200:
-        results = response.json().get("results", [])
-        if results:
-            random.shuffle(results)
-            return results[:5]
-    return []
+        data = response.json()
+        results = data.get("results", [])[:5]
+        total_pages = min(data.get("total_pages", 1), 500)
+        return results, total_pages
+    return [], 0
 
 def get_english_overview(item_id, is_tv=False):
     endpoint = "tv" if is_tv else "movie"
