@@ -76,6 +76,18 @@ def get_country_keyboard():
     )
     return markup
 
+# СПЕЦИАЛЬНАЯ КЛАВИАТУРА ДЛЯ ДОРАМ
+def get_dorama_country_keyboard():
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("Ю. Корея", callback_data="country_KR"),
+        types.InlineKeyboardButton("Япония", callback_data="country_JP"),
+        types.InlineKeyboardButton("Китай", callback_data="country_CN"),
+        types.InlineKeyboardButton("Тайвань", callback_data="country_TW"),
+        types.InlineKeyboardButton("🎲 Любая из них", callback_data="country_any")
+    )
+    return markup
+
 def get_plot_keyboard():
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
@@ -128,7 +140,7 @@ def get_restart_keyboard():
     markup.add(types.InlineKeyboardButton("🔄 Повторить поиск", callback_data="start_recommend"))
     return markup
 
-# Reply-клавиатура
+# Reply-клавиатура (внизу экрана)
 def get_reply_main_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     btn_search = types.KeyboardButton("🎬 Подобрать фильм")

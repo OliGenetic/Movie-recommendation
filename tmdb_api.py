@@ -45,7 +45,6 @@ def get_recommendations(state, page=1):
         if state.get('country') == "any":
             params["with_origin_country"] = "KR|JP|CN|TW"
 
-
     # 2. НАСТРОЕНИЕ
     mood = state.get('mood')
     mood_genres = []
