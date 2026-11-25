@@ -124,42 +124,42 @@ def callback_handler(call):
     # 2. ЗАПУСК ОПРОСА
     elif data == "start_recommend":
         user_states[chat_id] = {'page': 1}
-        bot.edit_message_text("Шаг 1. Что будем смотреть?", chat_id, message_id, reply_markup=keyboards.get_format_keyboard())
+        bot.edit_message_text("Что будем смотреть?", chat_id, message_id, reply_markup=keyboards.get_format_keyboard())
 
     # 3. ФОРМАТ
     elif data.startswith("format_"):
         user_states[chat_id]['format'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 2. Под какое настроение?", chat_id, message_id, reply_markup=keyboards.get_mood_keyboard())
+        bot.edit_message_text("Под какое настроение?", chat_id, message_id, reply_markup=keyboards.get_mood_keyboard())
 
     # 4. НАСТРОЕНИЕ
     elif data.startswith("mood_"):
         user_states[chat_id]['mood'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 3. Выберите период выхода:", chat_id, message_id, reply_markup=keyboards.get_year_keyboard())
+        bot.edit_message_text("Выберите период выхода:", chat_id, message_id, reply_markup=keyboards.get_year_keyboard())
 
     # 5. ГОД
     elif data.startswith("year_"):
         user_states[chat_id]['year'] = data.split("_", 1)[1]
-        bot.edit_message_text("Шаг 4. Страна производства:", chat_id, message_id, reply_markup=keyboards.get_country_keyboard())
+        bot.edit_message_text("Страна производства:", chat_id, message_id, reply_markup=keyboards.get_country_keyboard())
 
     # 6. СТРАНА
     elif data.startswith("country_"):
         user_states[chat_id]['country'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 5. Основа сюжета:", chat_id, message_id, reply_markup=keyboards.get_plot_keyboard())
+        bot.edit_message_text("Основа сюжета:", chat_id, message_id, reply_markup=keyboards.get_plot_keyboard())
 
     # 7. ОСНОВА СЮЖЕТА
     elif data.startswith("plot_"):
         user_states[chat_id]['plot'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 6. Главные герои (персонажи):", chat_id, message_id, reply_markup=keyboards.get_character_keyboard())
+        bot.edit_message_text("Главные герои (персонажи):", chat_id, message_id, reply_markup=keyboards.get_character_keyboard())
 
     # 8. ПЕРСОНАЖИ
     elif data.startswith("char_"):
         user_states[chat_id]['char'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 7. Выберите минимальный рейтинг TMDB:", chat_id, message_id, reply_markup=keyboards.get_rating_keyboard())
+        bot.edit_message_text("Выберите минимальный рейтинг TMDB:", chat_id, message_id, reply_markup=keyboards.get_rating_keyboard())
 
     # 9. РЕЙТИНГ
     elif data.startswith("rating_"):
         user_states[chat_id]['rating'] = data.split("_")[1]
-        bot.edit_message_text("Шаг 8. Длительность (только для фильма):", chat_id, message_id, reply_markup=keyboards.get_runtime_keyboard())
+        bot.edit_message_text("Выберите длительность фильма:", chat_id, message_id, reply_markup=keyboards.get_runtime_keyboard())
 
     # 10. ДЛИТЕЛЬНОСТЬ И ЗАПРОС
     elif data.startswith("runtime_"):
@@ -181,7 +181,7 @@ def callback_handler(call):
             if total_pages > 1:
                 bot.send_message(chat_id, "Хотите посмотреть другие варианты?", reply_markup=keyboards.get_more_results_keyboard())
             else:
-                bot.send_message(chat_id, "Больше ничего не нашли по вашему запросу.", reply_markup=keyboards.get_restart_keyboard())
+                bot.send_message(chat_id, "Больше ничего не нашли по данному запросу.", reply_markup=keyboards.get_restart_keyboard())
 
     # 11. ПОКАЗАТЬ ЕЩЁ
     elif data == "more_results":
@@ -192,7 +192,7 @@ def callback_handler(call):
         
         if not movies:
             bot.edit_message_text(
-                "😔 Больше ничего не нашли по вашему запросу.", 
+                "😔 Больше ничего не нашли по данному запросу.", 
                 chat_id, message_id, 
                 reply_markup=keyboards.get_restart_keyboard()
             )
@@ -202,7 +202,7 @@ def callback_handler(call):
             send_movies(chat_id, movies)
             
             if current_page >= total_pages:
-                bot.edit_message_text("Это все фильмы, которые мы нашли.", chat_id, message_id, reply_markup=keyboards.get_restart_keyboard())
+                bot.edit_message_text("Это все фильмы, которые нашли по данному запросу.", chat_id, message_id, reply_markup=keyboards.get_restart_keyboard())
             else:
                 bot.edit_message_text("Хотите посмотреть другие варианты?", chat_id, message_id, reply_markup=keyboards.get_more_results_keyboard())
 

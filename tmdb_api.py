@@ -15,6 +15,10 @@ KEYWORDS = {
 }
 
 def get_recommendations(state, page=1):    
+    # Защита от ошибки 400 (TMDB не отдает страницы выше 500)
+    if page > 500:
+        return [], 500
+
     media_type = "movie"
     if state.get('format') in ['tv', 'dorama', 'anime']:
         media_type = "tv"
@@ -32,11 +36,15 @@ def get_recommendations(state, page=1):
     fmt = state.get('format')
     if fmt == 'cartoon':
         params["with_genres"] = "16"
+        params["without_keywords"] = "210024" # Исключаем аниме из мультфильмов
     elif fmt == 'anime':
         params["with_genres"] = "16"
         params["with_keywords"] = "210024"
     elif fmt == 'dorama':
-        params["with_origin_country"] = "KR"
+        # Если страна не выбрана, ищем дорамы по всем азиатским странам
+        if state.get('country') == "any":
+            params["with_origin_country"] = "KR|JP|CN|TW"
+
 
     # 2. НАСТРОЕНИЕ
     mood = state.get('mood')
@@ -67,7 +75,8 @@ def get_recommendations(state, page=1):
 
     # 4. СТРАНА
     country = state.get('country')
-    if country != "any":
+    if country != "any" and fmt not in ['anime']:
+        # Если выбрана конкретная страна, применяем её
         params["with_origin_country"] = country
 
     # 5. ОСНОВА СЮЖЕТА
@@ -105,8 +114,8 @@ def get_recommendations(state, page=1):
     
     if response.status_code == 200:
         data = response.json()
-        results = data.get("results", [])[:5] # Берем 5 фильмов с текущей страницы
-        total_pages = data.get("total_pages", 1)
+        results = data.get("results", [])[:5]
+        total_pages = min(data.get("total_pages", 1), 500) # Ограничиваем 500 страницами
         return results, total_pages
     else:
         print(f"Ошибка API: {response.status_code} - {response.text}")
@@ -130,6 +139,22 @@ def get_random_movie():
         if results:
             return random.choice(results)
     return None
+
+# СЕЗОННЫЕ ФИЛЬМЫ
+# Новогодние фильмы
+def get_new_year_movies():
+    url = f"{BASE_URL}/discover/movie"
+    params = {
+        "api_key": config.TMDB_API_KEY,
+        "language": "ru-RU",
+        "sort_by": "popularity.desc",
+        "with_keywords": "207317|12392", # Christmas or New Year
+        "vote_average.gte": 6.0
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        return response.json().get("results", [])[:5]
+    return []
 
 def get_english_overview(item_id, is_tv=False):
     endpoint = "tv" if is_tv else "movie"
