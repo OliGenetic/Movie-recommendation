@@ -34,7 +34,11 @@ def get_recommendations(state, page=1):
 
     # 1. ФОРМАТ
     fmt = state.get('format')
-    if fmt == 'cartoon':
+    if fmt == 'movie':
+        # Исключаем мультфильмы (16) и аниме (210024) из обычных фильмов
+        params["without_genres"] = "16"
+        params["without_keywords"] = "210024"
+    elif fmt == 'cartoon':
         params["with_genres"] = "16"
         params["without_keywords"] = "210024" # Исключаем аниме из мультфильмов
     elif fmt == 'anime':
